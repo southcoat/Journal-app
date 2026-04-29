@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Journal",
+    "slug": "journal-app",
+    "version": "1.0.0",
+    "scheme": "journalapp",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0D0D14"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.yourname.journalapp",
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"],
+        "NSMicrophoneUsageDescription": "Journal needs microphone access to record your journal entries.",
+        "NSSpeechRecognitionUsageDescription": "Journal uses speech recognition for live transcription."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0D0D14"
+      },
+      "package": "com.yourname.journalapp",
+      "permissions": ["RECORD_AUDIO", "INTERNET", "FOREGROUND_SERVICE"]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow Journal to access your microphone to record journal entries."
+        }
+      ]
+    ]
+  }
+}
