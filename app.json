@@ -25,7 +25,7 @@
       "adaptiveIcon": {
         "backgroundColor": "#0D0D14"
       },
-      "package": "com.yourname.journalapp",
+      "package": "com.southcoat.journalapp",
       "permissions": ["RECORD_AUDIO", "INTERNET", "FOREGROUND_SERVICE"]
     },
     "web": {
