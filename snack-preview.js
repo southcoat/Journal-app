@@ -64,7 +64,7 @@ function Waveform({ isActive, color }) {
     return ()=>clearInterval(id);
   },[isActive]);
   return (
-    <View style={{flexDirection:'row',alignItems:'center',height:80,paddingHorizontal:8}}>
+    <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',height:80,paddingHorizontal:8}}>
       {bars.map((h,i)=>(
         <Animated.View key={i} style={{width:3,marginHorizontal:1,height:h,borderRadius:1.5,
           backgroundColor:color||C.primary,opacity:(isActive?0.3+(i/N)*0.7:0.18)*Math.min(1,Math.min(i,N-1-i)/(N*0.2))}}/>
@@ -239,21 +239,17 @@ function RecordScreen({ goBack, params }) {
   const [loadingPrompts, setLoadingPrompts] = useState(true);
   const timer = useRef(null);
 
-  const slideY = useRef(new Animated.Value(120)).current;
+  const slideY = useRef(new Animated.Value(100)).current;
   const morphProg = useRef(new Animated.Value(0)).current;
   const controlsOp = useRef(new Animated.Value(0)).current;
   const promptsOp = useRef(new Animated.Value(0)).current;
 
   useEffect(()=>{
-    Animated.sequence([
-      Animated.delay(150),
-      Animated.spring(slideY,{toValue:0,speed:13,bounciness:4,useNativeDriver:true}),
-      Animated.timing(morphProg,{toValue:1,duration:500,useNativeDriver:false}),
-      Animated.parallel([
-        Animated.timing(controlsOp,{toValue:1,duration:320,useNativeDriver:true}),
-        Animated.timing(promptsOp,{toValue:1,duration:400,useNativeDriver:true}),
-      ]),
-    ]).start();
+    // Use explicit delays on all animations — avoids driver-mixing issues on web
+    Animated.timing(slideY,{toValue:0,duration:480,delay:100,useNativeDriver:false}).start();
+    Animated.timing(morphProg,{toValue:1,duration:520,delay:680,useNativeDriver:false}).start();
+    Animated.timing(controlsOp,{toValue:1,duration:340,delay:1280,useNativeDriver:false}).start();
+    Animated.timing(promptsOp,{toValue:1,duration:400,delay:1280,useNativeDriver:false}).start();
     const t = setTimeout(()=>setStatus('recording'),900);
     const p = setTimeout(()=>{ setPrompts(MOCK_PROMPTS); setLoadingPrompts(false); },1800);
     return()=>{ clearTimeout(t); clearTimeout(p); };
@@ -312,8 +308,8 @@ function RecordScreen({ goBack, params }) {
 
       <View style={{flex:1,alignItems:'center',justifyContent:'center'}}>
         <Animated.View style={{transform:[{translateY:slideY}],alignItems:'center'}}>
-          <Animated.View style={{width:morphW,height:88,borderRadius:morphR,overflow:'hidden',alignItems:'center',justifyContent:'center'}}>
-            <Animated.View style={{position:'absolute',top:0,left:0,right:0,bottom:0,backgroundColor:C.rec,opacity:btnBgOp}}/>
+          <Animated.View style={{width:morphW,height:88,alignItems:'center',justifyContent:'center'}}>
+            <Animated.View style={{position:'absolute',top:0,left:0,right:0,bottom:0,backgroundColor:C.rec,borderRadius:morphR,opacity:btnBgOp}}/>
             <Animated.View style={{position:'absolute',opacity:iconOp}}>
               <Ionicons name="mic" size={36} color={C.white}/>
             </Animated.View>
