@@ -67,7 +67,7 @@ function Waveform({ isActive, color }) {
     <View style={{flexDirection:'row',alignItems:'center',height:80,paddingHorizontal:8}}>
       {bars.map((h,i)=>(
         <Animated.View key={i} style={{width:3,marginHorizontal:1,height:h,borderRadius:1.5,
-          backgroundColor:color||C.primary,opacity:isActive?0.3+(i/N)*0.7:0.18}}/>
+          backgroundColor:color||C.primary,opacity:(isActive?0.3+(i/N)*0.7:0.18)*Math.min(1,Math.min(i,N-1-i)/(N*0.2))}}/>
       ))}
     </View>
   );
@@ -239,21 +239,34 @@ function RecordScreen({ goBack, params }) {
   const [loadingPrompts, setLoadingPrompts] = useState(true);
   const timer = useRef(null);
 
+  const slideY = useRef(new Animated.Value(120)).current;
+  const morphProg = useRef(new Animated.Value(0)).current;
+  const controlsOp = useRef(new Animated.Value(0)).current;
+  const promptsOp = useRef(new Animated.Value(0)).current;
+
   useEffect(()=>{
-    const t = setTimeout(()=>setStatus('recording'),600);
-    // Simulate prompt loading
+    Animated.sequence([
+      Animated.delay(150),
+      Animated.spring(slideY,{toValue:0,speed:13,bounciness:4,useNativeDriver:true}),
+      Animated.timing(morphProg,{toValue:1,duration:500,useNativeDriver:false}),
+      Animated.parallel([
+        Animated.timing(controlsOp,{toValue:1,duration:320,useNativeDriver:true}),
+        Animated.timing(promptsOp,{toValue:1,duration:400,useNativeDriver:true}),
+      ]),
+    ]).start();
+    const t = setTimeout(()=>setStatus('recording'),900);
     const p = setTimeout(()=>{ setPrompts(MOCK_PROMPTS); setLoadingPrompts(false); },1800);
     return()=>{ clearTimeout(t); clearTimeout(p); };
   },[]);
 
   useEffect(()=>{
-    if (status==='recording') { timer.current=setInterval(()=>setMs(m=>m+80),80); }
+    if(status==='recording'){ timer.current=setInterval(()=>setMs(m=>m+80),80); }
     else clearInterval(timer.current);
     return()=>clearInterval(timer.current);
   },[status]);
 
-  const handleMain = ()=>{ if(status==='recording') setStatus('paused'); else if(status==='paused') setStatus('recording'); };
-  const handleStop = ()=>{
+  const handleMain=()=>{ if(status==='recording') setStatus('paused'); else if(status==='paused') setStatus('recording'); };
+  const handleStop=()=>{
     setStatus('processing');
     setTimeout(()=>{
       params?.onDone?.({id:String(Date.now()),date:new Date().toISOString(),durationMs:ms,
@@ -261,15 +274,23 @@ function RecordScreen({ goBack, params }) {
       goBack();
     },1500);
   };
-  const handleCancel = ()=>{
+  const handleCancel=()=>{
     Alert.alert('Discard recording?','This recording will be lost.',[
       {text:'Keep recording',style:'cancel'},
       {text:'Discard',style:'destructive',onPress:goBack},
     ]);
   };
-  const statusLabel = status==='recording'?'Recording…':status==='paused'?'Paused':status==='processing'?'Saving…':'Starting…';
-  const statusColor = status==='recording'?C.rec:status==='paused'?C.pause:C.sub;
-  const showPrompts = loadingPrompts || prompts.length>0;
+
+  const morphW = morphProg.interpolate({inputRange:[0,1],outputRange:[88,300]});
+  const morphR = morphProg.interpolate({inputRange:[0,1],outputRange:[44,14]});
+  const btnBgOp = morphProg.interpolate({inputRange:[0,0.8],outputRange:[1,0],extrapolate:'clamp'});
+  const iconOp = morphProg.interpolate({inputRange:[0,0.3],outputRange:[1,0],extrapolate:'clamp'});
+  const waveOp = morphProg.interpolate({inputRange:[0.45,1],outputRange:[0,1],extrapolate:'clamp'});
+
+  const statusLabel=status==='recording'?'Recording…':status==='paused'?'Paused':status==='processing'?'Saving…':'Starting…';
+  const statusColor=status==='recording'?C.rec:status==='paused'?C.pause:C.sub;
+  const showPrompts=loadingPrompts||prompts.length>0;
+
   return (
     <SafeAreaView style={{flex:1,backgroundColor:C.bg}}>
       <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',padding:12}}>
@@ -284,23 +305,40 @@ function RecordScreen({ goBack, params }) {
           <Ionicons name="options-outline" size={24} color={C.sub}/>
         </TouchableOpacity>
       </View>
-      {showPrompts&&<ReflectionPrompts prompts={prompts} isLoading={loadingPrompts}/>}
+
+      <Animated.View style={{opacity:promptsOp}}>
+        {showPrompts&&<ReflectionPrompts prompts={prompts} isLoading={loadingPrompts}/>}
+      </Animated.View>
+
       <View style={{flex:1,alignItems:'center',justifyContent:'center'}}>
-        <Waveform isActive={status==='recording'} color={status==='paused'?C.pause:C.primary}/>
-        <Text style={{color:C.text,fontSize:48,fontWeight:'700',letterSpacing:2,marginTop:24}}>{fmtDur(ms)}</Text>
+        <Animated.View style={{transform:[{translateY:slideY}],alignItems:'center'}}>
+          <Animated.View style={{width:morphW,height:88,borderRadius:morphR,overflow:'hidden',alignItems:'center',justifyContent:'center'}}>
+            <Animated.View style={{position:'absolute',top:0,left:0,right:0,bottom:0,backgroundColor:C.rec,opacity:btnBgOp}}/>
+            <Animated.View style={{position:'absolute',opacity:iconOp}}>
+              <Ionicons name="mic" size={36} color={C.white}/>
+            </Animated.View>
+            <Animated.View style={{position:'absolute',width:'100%',opacity:waveOp}}>
+              <Waveform isActive={status==='recording'} color={status==='paused'?C.pause:C.primary}/>
+            </Animated.View>
+          </Animated.View>
+          <Animated.Text style={{opacity:controlsOp,color:C.text,fontSize:48,fontWeight:'700',letterSpacing:2,marginTop:24}}>
+            {fmtDur(ms)}
+          </Animated.Text>
+        </Animated.View>
       </View>
-      <View style={{alignItems:'center',paddingTop:16,paddingBottom:Platform.OS==='web'?80:48,gap:28}}>
+
+      <Animated.View style={{opacity:controlsOp,alignItems:'center',paddingTop:16,paddingBottom:Platform.OS==='web'?80:48,gap:28}}>
         {status==='processing'
-          ? <Text style={{color:C.sub,fontSize:16,paddingBottom:20}}>Saving…</Text>
-          : <>
-              <RecordButton status={status} onPress={handleMain} size={88}/>
-              <TouchableOpacity onPress={handleStop}
-                style={{width:56,height:56,borderRadius:28,backgroundColor:C.surface,borderWidth:2,borderColor:C.border,alignItems:'center',justifyContent:'center'}}>
-                <View style={{width:20,height:20,borderRadius:4,backgroundColor:C.rec}}/>
-              </TouchableOpacity>
-            </>
+          ?<Text style={{color:C.sub,fontSize:16,paddingBottom:20}}>Saving…</Text>
+          :<>
+            <RecordButton status={status} onPress={handleMain} size={88}/>
+            <TouchableOpacity onPress={handleStop}
+              style={{width:56,height:56,borderRadius:28,backgroundColor:C.surface,borderWidth:2,borderColor:C.border,alignItems:'center',justifyContent:'center'}}>
+              <View style={{width:20,height:20,borderRadius:4,backgroundColor:C.rec}}/>
+            </TouchableOpacity>
+          </>
         }
-      </View>
+      </Animated.View>
       <MicSelector visible={micModal} onClose={()=>setMicModal(false)} selectedUid={selMic} onSelect={setSelMic}/>
     </SafeAreaView>
   );
