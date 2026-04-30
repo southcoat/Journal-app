@@ -33,7 +33,7 @@ const INITIAL_ENTRIES = [
 
 const MOCK_PROMPTS = [
   'How did the team restructuring idea go — did you follow through?',
-  'You mentioned feeling stuck last time. What's shifted since then?',
+  "You mentioned feeling stuck last time. What's shifted since then?",
 ];
 
 const AUDIO_FORMATS = [
