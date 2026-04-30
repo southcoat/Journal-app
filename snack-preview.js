@@ -216,7 +216,7 @@ function HomeScreen({ navigate }) {
       <FlatList data={entries} keyExtractor={i=>i.id}
         renderItem={({item})=><EntryCard entry={item} onPress={()=>navigate('Entry',{entry:item})}/>}
         contentContainerStyle={{paddingTop:8,paddingBottom:120}} showsVerticalScrollIndicator={false}/>
-      <View style={{position:'absolute',bottom:0,left:0,right:0,paddingBottom:36,alignItems:'center'}}>
+      <View style={{position:'absolute',bottom:0,left:0,right:0,paddingBottom:Platform.OS==='web'?80:36,alignItems:'center'}}>
         <TouchableOpacity onPress={()=>navigate('Record',{onDone:e=>setEntries(prev=>[e,...prev])})} activeOpacity={0.85}
           style={{flexDirection:'row',alignItems:'center',backgroundColor:C.primary,
             paddingVertical:16,paddingHorizontal:32,borderRadius:9999,gap:8,
