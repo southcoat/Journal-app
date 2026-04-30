@@ -266,7 +266,7 @@ function RecordScreen({ goBack, params }) {
     setStatus('processing');
     setTimeout(()=>{
       params?.onDone?.({id:String(Date.now()),date:new Date().toISOString(),durationMs:ms,
-        transcript:'(Transcript appears here after Whisper processes the audio.)',isTranscribing:false});
+        transcript:'(Transcript appears here after Gemini processes the audio.)',isTranscribing:false});
       goBack();
     },1500);
   };
@@ -413,7 +413,7 @@ function EntryScreen({ goBack, params }) {
             ? <TextInput value={draft} onChangeText={setDraft} multiline autoFocus placeholderTextColor={C.muted} textAlignVertical="top"
                 style={{color:C.text,fontSize:16,lineHeight:26,minHeight:200,backgroundColor:C.surfaceVar,borderRadius:8,padding:12}}/>
             : <Text style={{color:transcript?C.text:C.muted,fontSize:16,lineHeight:26,fontStyle:transcript?'normal':'italic'}}>
-                {transcript||'No transcript. Add an OpenAI API key in Settings.'}
+                {transcript||'No transcript. Add a Google AI Studio API key in Settings.'}
               </Text>
           }
         </View>
@@ -484,12 +484,12 @@ function SettingsScreen({ goBack }) {
         </View>
 
         {/* Transcription */}
-        <Text style={{color:'#555566',fontSize:12,textTransform:'uppercase',letterSpacing:1,marginTop:24,marginBottom:8,marginLeft:4}}>Transcription</Text>
+        <Text style={{color:'#555566',fontSize:12,textTransform:'uppercase',letterSpacing:1,marginTop:24,marginBottom:8,marginLeft:4}}>Transcription &amp; Reflections</Text>
         <View style={{backgroundColor:C.surface,borderRadius:16,padding:16,borderWidth:1,borderColor:C.border}}>
-          <Text style={{color:C.text,fontSize:16,fontWeight:'600',marginBottom:4}}>OpenAI API Key</Text>
-          <Text style={{color:C.sub,fontSize:13,lineHeight:18,marginBottom:12}}>Powers Whisper transcription and AI reflection prompts. Get a key at platform.openai.com</Text>
+          <Text style={{color:C.text,fontSize:16,fontWeight:'600',marginBottom:4}}>Google AI Studio API Key</Text>
+          <Text style={{color:C.sub,fontSize:13,lineHeight:18,marginBottom:12}}>Powers transcription (Gemini 2.0 Flash) and reflection prompts (Gemini 1.5 Pro). Get a free key at aistudio.google.com</Text>
           <View style={{flexDirection:'row',alignItems:'center',backgroundColor:C.surfaceVar,borderRadius:12,borderWidth:1,borderColor:C.border,marginBottom:8}}>
-            <TextInput value={apiKey} onChangeText={setApiKey} placeholder="sk-…" placeholderTextColor={C.muted}
+            <TextInput value={apiKey} onChangeText={setApiKey} placeholder="AIza…" placeholderTextColor={C.muted}
               secureTextEntry={!showKey} autoCapitalize="none" autoCorrect={false}
               style={{flex:1,color:C.text,fontSize:14,padding:14,fontFamily:'monospace'}}/>
             <TouchableOpacity onPress={()=>setShowKey(v=>!v)} style={{padding:14}}>
@@ -510,7 +510,7 @@ function SettingsScreen({ goBack }) {
         {/* Recording Format */}
         <Text style={{color:'#555566',fontSize:12,textTransform:'uppercase',letterSpacing:1,marginTop:24,marginBottom:8,marginLeft:4}}>Recording Format</Text>
         <View style={{backgroundColor:C.surface,borderRadius:16,padding:16,borderWidth:1,borderColor:C.border}}>
-          <Text style={{color:C.sub,fontSize:13,lineHeight:18,marginBottom:12}}>Higher quality means larger files. Compact M4A works best with Whisper transcription.</Text>
+          <Text style={{color:C.sub,fontSize:13,lineHeight:18,marginBottom:12}}>Higher quality means larger files. Compact M4A works best with Gemini transcription.</Text>
           {AUDIO_FORMATS.map(fmt=>{
             const sel=audioFormat===fmt.value;
             return (

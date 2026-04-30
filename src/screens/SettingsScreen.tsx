@@ -30,9 +30,9 @@ const AUDIO_FORMATS: { value: AudioFormat; label: string; detail: string }[] = [
 export default function SettingsScreen() {
   const navigation = useNavigation();
   const { settings, updateSettings } = useApp();
-  const [apiKeyDraft, setApiKeyDraft] = useState(settings.openAIApiKey);
+  const [apiKeyDraft, setApiKeyDraft] = useState(settings.geminiApiKey);
   const [apiKeyVisible, setApiKeyVisible] = useState(false);
-  const hasUnsavedKey = apiKeyDraft !== settings.openAIApiKey;
+  const hasUnsavedKey = apiKeyDraft !== settings.geminiApiKey;
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: GOOGLE_CONFIG.webClientId,
@@ -75,8 +75,8 @@ export default function SettingsScreen() {
   }, [response]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveApiKey = useCallback(async () => {
-    await updateSettings({ openAIApiKey: apiKeyDraft.trim() });
-    Alert.alert('Saved', 'OpenAI API key updated.');
+    await updateSettings({ geminiApiKey: apiKeyDraft.trim() });
+    Alert.alert('Saved', 'Google AI Studio API key updated.');
   }, [apiKeyDraft, updateSettings]);
 
   const handleSignOut = useCallback(async () => {
@@ -172,16 +172,16 @@ export default function SettingsScreen() {
         </View>
 
         {/* ── Transcription ─────────────────────────────────────── */}
-        <Text style={styles.sectionHeader}>Transcription</Text>
+        <Text style={styles.sectionHeader}>Transcription &amp; Reflections</Text>
         <View style={styles.card}>
-          <Text style={styles.label}>OpenAI API Key</Text>
-          <Text style={styles.hint}>Powers Whisper transcription and AI reflection prompts. Get a key at platform.openai.com</Text>
+          <Text style={styles.label}>Google AI Studio API Key</Text>
+          <Text style={styles.hint}>Powers audio transcription (Gemini 2.0 Flash) and reflection prompts (Gemini 1.5 Pro). Get a free key at aistudio.google.com</Text>
           <View style={styles.apiKeyRow}>
             <TextInput
               style={styles.apiKeyInput}
               value={apiKeyDraft}
               onChangeText={setApiKeyDraft}
-              placeholder="sk-…"
+              placeholder="AIza…"
               placeholderTextColor={colors.textMuted}
               secureTextEntry={!apiKeyVisible}
               autoCapitalize="none"
@@ -195,7 +195,7 @@ export default function SettingsScreen() {
             <TouchableOpacity style={styles.saveKeyBtn} onPress={saveApiKey}>
               <Text style={styles.saveKeyText}>Save Key</Text>
             </TouchableOpacity>
-          ) : settings.openAIApiKey ? (
+          ) : settings.geminiApiKey ? (
             <View style={styles.keySet}>
               <Ionicons name="checkmark-circle" size={16} color={colors.success} />
               <Text style={styles.keySetText}>API key is set — transcription &amp; reflections enabled</Text>

@@ -19,33 +19,32 @@ export async function generateReflectionPrompts(
   if (!transcripts || !apiKey) return pickFallbacks();
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        max_tokens: 200,
-        messages: [
-          {
-            role: 'system',
-            content:
-              'You are a thoughtful journaling coach. Based on the user\'s recent journal entries, generate exactly 2-3 short, specific reflection questions to guide their next recording. Make them feel personal and connected to their actual content — not generic self-help clichés. Focus on growth, unresolved threads, or meaningful patterns you notice. Return ONLY a valid JSON array of strings, nothing else. Example: ["How did the team meeting go after you restructured it?","You mentioned feeling stuck — what\'s shifted since then?"]',
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{
+              text: "You are a thoughtful journaling coach. Based on the user's recent journal entries, generate exactly 2-3 short, specific reflection questions to guide their next recording. Make them feel personal and connected to their actual content — not generic self-help clichés. Focus on growth, unresolved threads, or meaningful patterns you notice. Return ONLY a valid JSON array of strings, nothing else. Example: [\"How did the team meeting go after you restructured it?\",\"You mentioned feeling stuck — what's shifted since then?\"]",
+            }],
           },
-          {
-            role: 'user',
-            content: `Recent journal entries:\n\n${transcripts}`,
+          contents: [{
+            parts: [{ text: `Recent journal entries:\n\n${transcripts}` }],
+          }],
+          generationConfig: {
+            maxOutputTokens: 300,
+            responseMimeType: 'application/json',
           },
-        ],
-      }),
-    });
+        }),
+      }
+    );
 
     if (!response.ok) return pickFallbacks();
 
-    const data = await response.json() as { choices: { message: { content: string } }[] };
-    const content = data.choices?.[0]?.message?.content?.trim() ?? '';
+    const data = await response.json() as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
     const parsed: unknown = JSON.parse(content);
     if (Array.isArray(parsed) && parsed.length > 0) {
       return (parsed as string[]).slice(0, 3);
@@ -57,6 +56,5 @@ export async function generateReflectionPrompts(
 }
 
 function pickFallbacks(): string[] {
-  const shuffled = [...FALLBACK_PROMPTS].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, 2);
+  return [...FALLBACK_PROMPTS].sort(() => Math.random() - 0.5).slice(0, 2);
 }

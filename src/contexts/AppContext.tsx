@@ -3,7 +3,7 @@ import { JournalEntry, AppSettings } from '../types';
 import * as storageService from '../services/storageService';
 
 const DEFAULT_SETTINGS: AppSettings = {
-  openAIApiKey: '',
+  geminiApiKey: '',
   googleAccessToken: '',
   googleRefreshToken: '',
   googleTokenExpiry: 0,

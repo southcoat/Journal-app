@@ -19,7 +19,7 @@ export interface AudioInput {
 export type AudioFormat = 'compact' | 'standard' | 'archive';
 
 export interface AppSettings {
-  openAIApiKey: string;
+  geminiApiKey: string;
   googleAccessToken: string;
   googleRefreshToken: string;
   googleTokenExpiry: number; // Unix ms timestamp

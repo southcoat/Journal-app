@@ -48,7 +48,7 @@ export default function RecordScreen() {
       ]);
     });
 
-    generateReflectionPrompts(entries, settings.openAIApiKey)
+    generateReflectionPrompts(entries, settings.geminiApiKey)
       .then(prompts => setReflectionPrompts(prompts))
       .finally(() => setLoadingPrompts(false));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -77,15 +77,15 @@ export default function RecordScreen() {
         durationMs,
         audioUri,
         transcript: '',
-        isTranscribing: Boolean(settings.openAIApiKey),
+        isTranscribing: Boolean(settings.geminiApiKey),
       };
 
       await addEntry(entry);
       navigation.replace('Entry', { entryId });
 
-      if (settings.openAIApiKey) {
+      if (settings.geminiApiKey) {
         try {
-          const transcript = await transcribeAudio(audioUri, settings.openAIApiKey);
+          const transcript = await transcribeAudio(audioUri, settings.geminiApiKey);
           await updateEntry(entryId, { transcript, isTranscribing: false });
 
           if (settings.autoUploadToDrive && settings.googleAccessToken) {

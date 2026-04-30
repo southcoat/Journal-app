@@ -275,7 +275,7 @@ export default function EntryScreen() {
             />
           ) : (
             <Text style={[styles.transcriptText, !entry.transcript && styles.transcriptEmpty]}>
-              {entry.transcript || 'No transcript available. Add an OpenAI API key in Settings to enable transcription.'}
+              {entry.transcript || 'No transcript available. Add a Google AI Studio API key in Settings to enable transcription.'}
             </Text>
           )}
         </View>
