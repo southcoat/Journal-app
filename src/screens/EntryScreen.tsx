@@ -236,7 +236,7 @@ export default function EntryScreen() {
                 color={entry.driveAudioFileId ? colors.success : colors.primary}
               />
             )}
-            <Text style={[styles.actionLabel, entry.driveAudioFileId && { color: colors.success }]}>
+            <Text style={[styles.actionLabel, entry.driveAudioFileId ? { color: colors.success } : null]}>
               {entry.driveAudioFileId ? 'In Drive' : 'Upload'}
             </Text>
           </TouchableOpacity>

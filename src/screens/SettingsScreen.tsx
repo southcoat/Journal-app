@@ -211,8 +211,8 @@ export default function SettingsScreen() {
         {/* ── Recording Format ──────────────────────────────────── */}
         <Text style={styles.sectionHeader}>Recording Format</Text>
         <View style={styles.card}>
-          <Text style={styles.hint} style={{ marginBottom: spacing.md }}>
-            Higher quality means larger files. Compact M4A works best with Whisper transcription.
+          <Text style={[styles.hint, { marginBottom: spacing.md }]}>
+            Higher quality means larger files. Compact M4A works best with Gemini transcription.
           </Text>
           {AUDIO_FORMATS.map(fmt => {
             const selected = settings.audioFormat === fmt.value;

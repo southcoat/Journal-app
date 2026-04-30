@@ -52,8 +52,9 @@ function buildRecordingOptions(format: AudioFormat): Audio.RecordingOptions {
       linearPCMIsFloat: false,
     },
     web: { mimeType: 'audio/webm', bitsPerSecond: bitRate },
-  isMeteringEnabled: true,
-};
+    isMeteringEnabled: true,
+  };
+}
 
 interface UseRecorderReturn {
   status: RecordingStatus;
@@ -94,8 +95,8 @@ export function useRecorder(): UseRecorderReturn {
       return;
     }
     try {
-      const inputs = await Audio.getAvailableInputsAsync();
-      const mapped: AudioInput[] = inputs.map(i => ({
+      const inputs = await (Audio as any).getAvailableInputsAsync();
+      const mapped: AudioInput[] = inputs.map((i: any) => ({
         uid: i.uid,
         name: i.name,
         type: i.type as AudioInput['type'],
@@ -117,7 +118,7 @@ export function useRecorder(): UseRecorderReturn {
     setSelectedInputUid(uid);
     if (Platform.OS === 'ios') {
       try {
-        await Audio.setInputNativeIDAsync(uid);
+        await (Audio as any).setInputNativeIDAsync(uid);
       } catch {
         // Input may not support native selection — ignore
       }
@@ -138,7 +139,7 @@ export function useRecorder(): UseRecorderReturn {
     // Apply selected input on iOS
     if (Platform.OS === 'ios' && selectedInputUid) {
       try {
-        await Audio.setInputNativeIDAsync(selectedInputUid);
+        await (Audio as any).setInputNativeIDAsync(selectedInputUid);
       } catch {
         // ignore
       }
