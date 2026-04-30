@@ -1,33 +1,57 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Audio } from 'expo-av';
 import { Platform } from 'react-native';
-import { AudioInput, RecordingStatus } from '../types';
+import { AudioFormat, AudioInput, RecordingStatus } from '../types';
 import { persistAudioFile } from '../services/storageService';
 
-const RECORDING_OPTIONS: Audio.RecordingOptions = {
-  android: {
-    extension: '.m4a',
-    outputFormat: Audio.AndroidOutputFormat.MPEG_4,
-    audioEncoder: Audio.AndroidAudioEncoder.AAC,
-    sampleRate: 44100,
-    numberOfChannels: 1,
-    bitRate: 64000,
-  },
-  ios: {
-    extension: '.m4a',
-    outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
-    audioQuality: Audio.IOSAudioQuality.HIGH,
-    sampleRate: 44100,
-    numberOfChannels: 1,
-    bitRate: 64000,
-    linearPCMBitDepth: 16,
-    linearPCMIsBigEndian: false,
-    linearPCMIsFloat: false,
-  },
-  web: {
-    mimeType: 'audio/webm',
-    bitsPerSecond: 128000,
-  },
+function buildRecordingOptions(format: AudioFormat): Audio.RecordingOptions {
+  if (format === 'archive') {
+    return {
+      android: {
+        extension: '.wav',
+        outputFormat: Audio.AndroidOutputFormat.DEFAULT,
+        audioEncoder: Audio.AndroidAudioEncoder.DEFAULT,
+        sampleRate: 44100,
+        numberOfChannels: 1,
+        bitRate: 256000,
+      },
+      ios: {
+        extension: '.wav',
+        outputFormat: Audio.IOSOutputFormat.LINEARPCM,
+        audioQuality: Audio.IOSAudioQuality.MAX,
+        sampleRate: 44100,
+        numberOfChannels: 1,
+        bitRate: 256000,
+        linearPCMBitDepth: 16,
+        linearPCMIsBigEndian: false,
+        linearPCMIsFloat: false,
+      },
+      web: { mimeType: 'audio/wav', bitsPerSecond: 256000 },
+      isMeteringEnabled: true,
+    };
+  }
+  const bitRate = format === 'standard' ? 128000 : 64000;
+  return {
+    android: {
+      extension: '.m4a',
+      outputFormat: Audio.AndroidOutputFormat.MPEG_4,
+      audioEncoder: Audio.AndroidAudioEncoder.AAC,
+      sampleRate: 44100,
+      numberOfChannels: 1,
+      bitRate,
+    },
+    ios: {
+      extension: '.m4a',
+      outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
+      audioQuality: Audio.IOSAudioQuality.HIGH,
+      sampleRate: 44100,
+      numberOfChannels: 1,
+      bitRate,
+      linearPCMBitDepth: 16,
+      linearPCMIsBigEndian: false,
+      linearPCMIsFloat: false,
+    },
+    web: { mimeType: 'audio/webm', bitsPerSecond: bitRate },
   isMeteringEnabled: true,
 };
 
@@ -37,7 +61,7 @@ interface UseRecorderReturn {
   audioLevel: number; // 0–1 normalized
   availableInputs: AudioInput[];
   selectedInputUid: string | null;
-  startRecording: () => Promise<void>;
+  startRecording: (format?: AudioFormat) => Promise<void>;
   pauseRecording: () => Promise<void>;
   resumeRecording: () => Promise<void>;
   stopRecording: () => Promise<string | null>; // returns persisted audio URI
@@ -100,7 +124,7 @@ export function useRecorder(): UseRecorderReturn {
     }
   }, []);
 
-  const startRecording = useCallback(async () => {
+  const startRecording = useCallback(async (format: AudioFormat = 'compact') => {
     const { granted } = await Audio.requestPermissionsAsync();
     if (!granted) throw new Error('Microphone permission denied.');
 
@@ -123,7 +147,7 @@ export function useRecorder(): UseRecorderReturn {
     await refreshInputs();
 
     const recording = new Audio.Recording();
-    await recording.prepareToRecordAsync(RECORDING_OPTIONS);
+    await recording.prepareToRecordAsync(buildRecordingOptions(format));
 
     recording.setOnRecordingStatusUpdate((s) => {
       if (s.isRecording) {

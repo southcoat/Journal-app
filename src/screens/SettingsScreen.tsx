@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   SafeAreaView,
@@ -13,13 +13,19 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
-import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import { useApp } from '../contexts/AppContext';
 import { GOOGLE_CONFIG, clearDriveFolderCache } from '../services/driveService';
+import { AudioFormat } from '../types';
 import { colors, radius, spacing, typography } from '../theme';
 
 WebBrowser.maybeCompleteAuthSession();
+
+const AUDIO_FORMATS: { value: AudioFormat; label: string; detail: string }[] = [
+  { value: 'compact',  label: 'Compact (M4A)',      detail: '~0.5 MB/min — best for storage' },
+  { value: 'standard', label: 'Standard (M4A HQ)',  detail: '~1 MB/min — balanced quality' },
+  { value: 'archive',  label: 'Lossless (WAV)',      detail: '~10 MB/min — maximum quality' },
+];
 
 export default function SettingsScreen() {
   const navigation = useNavigation();
@@ -32,20 +38,35 @@ export default function SettingsScreen() {
     webClientId: GOOGLE_CONFIG.webClientId,
     iosClientId: GOOGLE_CONFIG.iosClientId,
     androidClientId: GOOGLE_CONFIG.androidClientId,
-    scopes: GOOGLE_CONFIG.scopes,
+    scopes: [...GOOGLE_CONFIG.scopes, 'profile', 'email'],
   });
 
-  // Handle OAuth response
   useEffect(() => {
     if (response?.type === 'success') {
       const auth = response.authentication;
       if (auth?.accessToken) {
         const expiry = Date.now() + (auth.expiresIn ?? 3600) * 1000;
-        updateSettings({
-          googleAccessToken: auth.accessToken,
-          googleRefreshToken: auth.refreshToken ?? settings.googleRefreshToken,
-          googleTokenExpiry: expiry,
-        });
+        // Fetch user profile
+        fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+          headers: { Authorization: `Bearer ${auth.accessToken}` },
+        })
+          .then(r => r.json())
+          .then((profile: { name?: string; email?: string }) => {
+            updateSettings({
+              googleAccessToken: auth.accessToken,
+              googleRefreshToken: auth.refreshToken ?? settings.googleRefreshToken,
+              googleTokenExpiry: expiry,
+              googleUserName: profile.name ?? '',
+              googleUserEmail: profile.email ?? '',
+            });
+          })
+          .catch(() => {
+            updateSettings({
+              googleAccessToken: auth.accessToken,
+              googleRefreshToken: auth.refreshToken ?? settings.googleRefreshToken,
+              googleTokenExpiry: expiry,
+            });
+          });
         Alert.alert('Signed in', 'Your journal entries can now be uploaded to Google Drive.');
       }
     } else if (response?.type === 'error') {
@@ -58,7 +79,7 @@ export default function SettingsScreen() {
     Alert.alert('Saved', 'OpenAI API key updated.');
   }, [apiKeyDraft, updateSettings]);
 
-  const handleGoogleSignOut = useCallback(async () => {
+  const handleSignOut = useCallback(async () => {
     Alert.alert('Sign out of Google?', 'Entries already uploaded will remain in Drive.', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -69,6 +90,8 @@ export default function SettingsScreen() {
             googleAccessToken: '',
             googleRefreshToken: '',
             googleTokenExpiry: 0,
+            googleUserName: '',
+            googleUserEmail: '',
           });
           await clearDriveFolderCache();
         },
@@ -76,17 +99,13 @@ export default function SettingsScreen() {
     ]);
   }, [updateSettings]);
 
-  const isSignedIntoGoogle = Boolean(settings.googleAccessToken);
+  const isSignedIn = Boolean(settings.googleAccessToken);
+  const userInitial = settings.googleUserName?.[0]?.toUpperCase() ?? '?';
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => navigation.goBack()}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-        >
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.title}>Settings</Text>
@@ -94,13 +113,69 @@ export default function SettingsScreen() {
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        {/* Transcription */}
+
+        {/* ── Account ──────────────────────────────────────────── */}
+        <Text style={styles.sectionHeader}>Account</Text>
+        <View style={styles.card}>
+          {isSignedIn ? (
+            <>
+              <View style={styles.userRow}>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>{userInitial}</Text>
+                </View>
+                <View style={styles.userInfo}>
+                  <Text style={styles.userName}>{settings.googleUserName || 'Google User'}</Text>
+                  <Text style={styles.userEmail}>{settings.googleUserEmail}</Text>
+                </View>
+                <Ionicons name="cloud-done" size={20} color={colors.success} />
+              </View>
+              <View style={styles.divider} />
+              <View style={styles.toggleRow}>
+                <View style={styles.toggleLeft}>
+                  <Text style={styles.toggleLabel}>Auto-upload after recording</Text>
+                  <Text style={styles.toggleHint}>Saves audio + transcript to Drive</Text>
+                </View>
+                <Switch
+                  value={settings.autoUploadToDrive}
+                  onValueChange={val => updateSettings({ autoUploadToDrive: val })}
+                  trackColor={{ true: colors.primary, false: colors.surfaceBorder }}
+                  thumbColor={colors.white}
+                />
+              </View>
+              <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut}>
+                <Ionicons name="log-out-outline" size={18} color={colors.recording} />
+                <Text style={styles.signOutText}>Sign out</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <Text style={styles.label}>Google Account</Text>
+              <Text style={styles.hint}>
+                Sign in to back up recordings and transcripts to Google Drive and keep your journal tied to your account.
+              </Text>
+              <TouchableOpacity
+                style={[styles.signInBtn, !request && styles.btnDisabled]}
+                onPress={() => promptAsync()}
+                disabled={!request}
+              >
+                <Ionicons name="logo-google" size={18} color={colors.white} />
+                <Text style={styles.signInText}>Sign in with Google</Text>
+              </TouchableOpacity>
+              {GOOGLE_CONFIG.webClientId.startsWith('YOUR_') && (
+                <View style={styles.warning}>
+                  <Ionicons name="warning-outline" size={14} color={colors.paused} />
+                  <Text style={styles.warningText}>Google OAuth not configured — see SETUP.md</Text>
+                </View>
+              )}
+            </>
+          )}
+        </View>
+
+        {/* ── Transcription ─────────────────────────────────────── */}
         <Text style={styles.sectionHeader}>Transcription</Text>
         <View style={styles.card}>
           <Text style={styles.label}>OpenAI API Key</Text>
-          <Text style={styles.hint}>
-            Used to transcribe recordings via Whisper. Get a key at platform.openai.com.
-          </Text>
+          <Text style={styles.hint}>Powers Whisper transcription and AI reflection prompts. Get a key at platform.openai.com</Text>
           <View style={styles.apiKeyRow}>
             <TextInput
               style={styles.apiKeyInput}
@@ -112,295 +187,119 @@ export default function SettingsScreen() {
               autoCapitalize="none"
               autoCorrect={false}
             />
-            <TouchableOpacity
-              style={styles.eyeBtn}
-              onPress={() => setApiKeyVisible(v => !v)}
-            >
-              <Ionicons
-                name={apiKeyVisible ? 'eye-off-outline' : 'eye-outline'}
-                size={20}
-                color={colors.textSecondary}
-              />
+            <TouchableOpacity style={styles.eyeBtn} onPress={() => setApiKeyVisible(v => !v)}>
+              <Ionicons name={apiKeyVisible ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
-          {hasUnsavedKey && (
+          {hasUnsavedKey ? (
             <TouchableOpacity style={styles.saveKeyBtn} onPress={saveApiKey}>
-              <Text style={styles.saveKeyBtnText}>Save Key</Text>
+              <Text style={styles.saveKeyText}>Save Key</Text>
             </TouchableOpacity>
-          )}
-          {settings.openAIApiKey && !hasUnsavedKey && (
+          ) : settings.openAIApiKey ? (
             <View style={styles.keySet}>
               <Ionicons name="checkmark-circle" size={16} color={colors.success} />
-              <Text style={styles.keySetText}>API key is set</Text>
+              <Text style={styles.keySetText}>API key is set — transcription &amp; reflections enabled</Text>
             </View>
-          )}
-        </View>
-
-        {/* Google Drive */}
-        <Text style={styles.sectionHeader}>Cloud Storage</Text>
-        <View style={styles.card}>
-          <View style={styles.row}>
-            <View style={styles.rowLeft}>
-              <Text style={styles.label}>Google Drive</Text>
-              <Text style={styles.hint}>
-                Uploads audio + transcripts to a "Journal App" folder in your Drive.
-              </Text>
-            </View>
-            {isSignedIntoGoogle ? (
-              <Ionicons name="cloud-done" size={24} color={colors.success} />
-            ) : (
-              <Ionicons name="cloud-offline-outline" size={24} color={colors.textMuted} />
-            )}
-          </View>
-
-          {isSignedIntoGoogle ? (
-            <TouchableOpacity style={styles.signOutBtn} onPress={handleGoogleSignOut}>
-              <Ionicons name="log-out-outline" size={18} color={colors.recording} />
-              <Text style={styles.signOutBtnText}>Sign out of Google</Text>
-            </TouchableOpacity>
           ) : (
-            <TouchableOpacity
-              style={[styles.signInBtn, !request && styles.signInBtnDisabled]}
-              onPress={() => promptAsync()}
-              disabled={!request}
-            >
-              <Ionicons name="logo-google" size={18} color={colors.white} />
-              <Text style={styles.signInBtnText}>Sign in with Google</Text>
-            </TouchableOpacity>
-          )}
-
-          {GOOGLE_CONFIG.webClientId.startsWith('YOUR_') && (
-            <View style={styles.setupWarning}>
-              <Ionicons name="warning-outline" size={16} color={colors.paused} />
-              <Text style={styles.setupWarningText}>
-                Google OAuth credentials not configured. See SETUP.md.
-              </Text>
+            <View style={styles.keySet}>
+              <Ionicons name="information-circle-outline" size={16} color={colors.textMuted} />
+              <Text style={[styles.keySetText, { color: colors.textMuted }]}>No key — transcription disabled</Text>
             </View>
           )}
-
-          <View style={styles.toggleRow}>
-            <View style={styles.toggleLeft}>
-              <Text style={styles.toggleLabel}>Auto-upload after recording</Text>
-              <Text style={styles.toggleHint}>Requires Google sign-in</Text>
-            </View>
-            <Switch
-              value={settings.autoUploadToDrive && isSignedIntoGoogle}
-              onValueChange={val => updateSettings({ autoUploadToDrive: val })}
-              trackColor={{ true: colors.primary, false: colors.surfaceBorder }}
-              thumbColor={colors.white}
-              disabled={!isSignedIntoGoogle}
-            />
-          </View>
         </View>
 
-        {/* About */}
+        {/* ── Recording Format ──────────────────────────────────── */}
+        <Text style={styles.sectionHeader}>Recording Format</Text>
+        <View style={styles.card}>
+          <Text style={styles.hint} style={{ marginBottom: spacing.md }}>
+            Higher quality means larger files. Compact M4A works best with Whisper transcription.
+          </Text>
+          {AUDIO_FORMATS.map(fmt => {
+            const selected = settings.audioFormat === fmt.value;
+            return (
+              <TouchableOpacity
+                key={fmt.value}
+                style={[styles.formatRow, selected && styles.formatRowSelected]}
+                onPress={() => updateSettings({ audioFormat: fmt.value })}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.radioOuter, selected && styles.radioOuterSelected]}>
+                  {selected && <View style={styles.radioInner} />}
+                </View>
+                <View style={styles.formatText}>
+                  <Text style={[styles.formatLabel, selected && { color: colors.text }]}>{fmt.label}</Text>
+                  <Text style={styles.formatDetail}>{fmt.detail}</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* ── About ─────────────────────────────────────────────── */}
         <Text style={styles.sectionHeader}>About</Text>
         <View style={styles.card}>
-          <View style={styles.aboutRow}>
-            <Text style={styles.aboutLabel}>Version</Text>
-            <Text style={styles.aboutValue}>1.0.0</Text>
-          </View>
-          <View style={[styles.aboutRow, { borderBottomWidth: 0 }]}>
-            <Text style={styles.aboutLabel}>Platform</Text>
-            <Text style={styles.aboutValue}>Expo SDK 51</Text>
-          </View>
+          {[['Version', '1.0.0'], ['Platform', 'Expo SDK 51']].map(([k, v], i, arr) => (
+            <View key={k} style={[styles.aboutRow, i === arr.length - 1 && { borderBottomWidth: 0 }]}>
+              <Text style={styles.aboutLabel}>{k}</Text>
+              <Text style={styles.aboutValue}>{v}</Text>
+            </View>
+          ))}
         </View>
+
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
-  },
-  backBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    ...typography.h3,
-  },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: spacing.md,
-    paddingBottom: spacing.xxl,
-  },
-  sectionHeader: {
-    ...typography.small,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    color: colors.textMuted,
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
-    marginLeft: spacing.xs,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.surfaceBorder,
-  },
-  label: {
-    ...typography.body,
-    fontWeight: '600',
-    marginBottom: spacing.xs,
-  },
-  hint: {
-    ...typography.small,
-    lineHeight: 18,
-    marginBottom: spacing.md,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: spacing.md,
-  },
-  rowLeft: {
-    flex: 1,
-    marginRight: spacing.md,
-  },
-  apiKeyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surfaceVariant,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.surfaceBorder,
-    marginBottom: spacing.sm,
-  },
-  apiKeyInput: {
-    flex: 1,
-    ...typography.mono,
-    fontSize: 14,
-    padding: spacing.md,
-    color: colors.text,
-  },
-  eyeBtn: {
-    padding: spacing.md,
-  },
-  saveKeyBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.sm,
-    alignItems: 'center',
-    marginTop: spacing.xs,
-  },
-  saveKeyBtnText: {
-    ...typography.body,
-    fontWeight: '600',
-    color: colors.white,
-  },
-  keySet: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.xs,
-  },
-  keySetText: {
-    ...typography.small,
-    color: colors.success,
-  },
-  signInBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    marginTop: spacing.sm,
-  },
-  signInBtnDisabled: {
-    opacity: 0.5,
-  },
-  signInBtnText: {
-    ...typography.body,
-    fontWeight: '600',
-    color: colors.white,
-  },
-  signOutBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.recordingFaded,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    marginTop: spacing.sm,
-  },
-  signOutBtnText: {
-    ...typography.body,
-    fontWeight: '600',
-    color: colors.recording,
-  },
-  setupWarning: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.xs,
-    backgroundColor: colors.pausedFaded,
-    borderRadius: radius.sm,
-    padding: spacing.sm,
-    marginTop: spacing.md,
-  },
-  setupWarningText: {
-    ...typography.small,
-    color: colors.paused,
-    flex: 1,
-    lineHeight: 18,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: spacing.md,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.surfaceBorder,
-  },
-  toggleLeft: {
-    flex: 1,
-    marginRight: spacing.md,
-  },
-  toggleLabel: {
-    ...typography.body,
-    fontWeight: '500',
-  },
-  toggleHint: {
-    ...typography.small,
-    marginTop: 2,
-  },
-  aboutRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.surfaceBorder,
-  },
-  aboutLabel: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
-  aboutValue: {
-    ...typography.body,
-    color: colors.text,
-  },
+  container: { flex: 1, backgroundColor: colors.background },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.sm },
+  backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  title: { ...typography.h3 },
+  scroll: { flex: 1 },
+  scrollContent: { padding: spacing.md, paddingBottom: spacing.xxl },
+  sectionHeader: { ...typography.small, textTransform: 'uppercase', letterSpacing: 1, color: colors.textMuted, marginTop: spacing.lg, marginBottom: spacing.sm, marginLeft: spacing.xs },
+  card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.md, borderWidth: 1, borderColor: colors.surfaceBorder },
+  label: { ...typography.body, fontWeight: '600', marginBottom: spacing.xs },
+  hint: { ...typography.small, lineHeight: 18, marginBottom: spacing.md },
+  divider: { height: 1, backgroundColor: colors.surfaceBorder, marginVertical: spacing.md },
+  // User profile
+  userRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { ...typography.h3, color: colors.white },
+  userInfo: { flex: 1 },
+  userName: { ...typography.body, fontWeight: '600' },
+  userEmail: { ...typography.small, marginTop: 2 },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  toggleLeft: { flex: 1, marginRight: spacing.md },
+  toggleLabel: { ...typography.body, fontWeight: '500' },
+  toggleHint: { ...typography.small, marginTop: 2 },
+  signOutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: colors.recordingFaded, borderRadius: radius.md, paddingVertical: spacing.md, marginTop: spacing.md },
+  signOutText: { ...typography.body, fontWeight: '600', color: colors.recording },
+  signInBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: colors.primary, borderRadius: radius.md, paddingVertical: spacing.md },
+  btnDisabled: { opacity: 0.5 },
+  signInText: { ...typography.body, fontWeight: '600', color: colors.white },
+  warning: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, backgroundColor: colors.pausedFaded, borderRadius: radius.sm, padding: spacing.sm, marginTop: spacing.sm },
+  warningText: { ...typography.small, color: colors.paused, flex: 1 },
+  // API key
+  apiKeyRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surfaceVariant, borderRadius: radius.md, borderWidth: 1, borderColor: colors.surfaceBorder, marginBottom: spacing.sm },
+  apiKeyInput: { flex: 1, ...typography.mono, fontSize: 14, padding: spacing.md, color: colors.text },
+  eyeBtn: { padding: spacing.md },
+  saveKeyBtn: { backgroundColor: colors.primary, borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center' },
+  saveKeyText: { ...typography.body, fontWeight: '600', color: colors.white },
+  keySet: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  keySetText: { ...typography.small, color: colors.success },
+  // Audio format
+  formatRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radius.md, marginBottom: spacing.sm, backgroundColor: colors.surfaceVariant },
+  formatRowSelected: { backgroundColor: colors.primaryFaded, borderWidth: 1, borderColor: colors.primary },
+  radioOuter: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: colors.textMuted, alignItems: 'center', justifyContent: 'center' },
+  radioOuterSelected: { borderColor: colors.primary },
+  radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },
+  formatText: { flex: 1 },
+  formatLabel: { ...typography.body, fontWeight: '500', color: colors.textSecondary },
+  formatDetail: { ...typography.small, marginTop: 2 },
+  // About
+  aboutRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.surfaceBorder },
+  aboutLabel: { ...typography.body, color: colors.textSecondary },
+  aboutValue: { ...typography.body },
 });

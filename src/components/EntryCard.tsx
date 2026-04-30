@@ -11,13 +11,6 @@ interface EntryCardProps {
 }
 
 export default function EntryCard({ entry, onPress }: EntryCardProps) {
-  const hasTranscript = Boolean(entry.transcript);
-  const preview = hasTranscript
-    ? entry.transcript.slice(0, 120) + (entry.transcript.length > 120 ? '…' : '')
-    : entry.isTranscribing
-    ? 'Transcribing…'
-    : 'No transcript available';
-
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
       <View style={styles.header}>
@@ -36,19 +29,11 @@ export default function EntryCard({ entry, onPress }: EntryCardProps) {
               style={styles.cloudIcon}
             />
           )}
+          {entry.isTranscribing && (
+            <Ionicons name="sync-outline" size={14} color={colors.paused} style={styles.cloudIcon} />
+          )}
         </View>
       </View>
-
-      <Text style={[styles.preview, !hasTranscript && styles.previewMuted]} numberOfLines={3}>
-        {preview}
-      </Text>
-
-      {entry.isTranscribing && (
-        <View style={styles.transcribingBadge}>
-          <Ionicons name="sync-outline" size={12} color={colors.paused} />
-          <Text style={styles.transcribingText}>Transcribing</Text>
-        </View>
-      )}
     </TouchableOpacity>
   );
 }
@@ -89,24 +74,5 @@ const styles = StyleSheet.create({
   },
   cloudIcon: {
     marginLeft: 4,
-  },
-  preview: {
-    ...typography.caption,
-    lineHeight: 20,
-    color: colors.textSecondary,
-  },
-  previewMuted: {
-    color: colors.textMuted,
-    fontStyle: 'italic',
-  },
-  transcribingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: spacing.sm,
-  },
-  transcribingText: {
-    ...typography.small,
-    color: colors.paused,
   },
 });

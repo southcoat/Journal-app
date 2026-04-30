@@ -7,8 +7,11 @@ const DEFAULT_SETTINGS: AppSettings = {
   googleAccessToken: '',
   googleRefreshToken: '',
   googleTokenExpiry: 0,
+  googleUserName: '',
+  googleUserEmail: '',
   autoUploadToDrive: false,
   liveTranscription: false,
+  audioFormat: 'compact',
 };
 
 interface AppContextValue {

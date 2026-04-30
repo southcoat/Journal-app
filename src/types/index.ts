@@ -16,13 +16,18 @@ export interface AudioInput {
   type: 'BuiltInMic' | 'BluetoothHFP' | 'HeadsetMic' | 'HeadphoneMic' | 'Unknown';
 }
 
+export type AudioFormat = 'compact' | 'standard' | 'archive';
+
 export interface AppSettings {
   openAIApiKey: string;
   googleAccessToken: string;
   googleRefreshToken: string;
   googleTokenExpiry: number; // Unix ms timestamp
+  googleUserName: string;
+  googleUserEmail: string;
   autoUploadToDrive: boolean;
   liveTranscription: boolean;
+  audioFormat: AudioFormat;
 }
 
 export type RecordingStatus = 'idle' | 'recording' | 'paused' | 'processing';
