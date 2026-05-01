@@ -36,7 +36,6 @@ export default function SettingsScreen() {
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: GOOGLE_CONFIG.webClientId,
-    iosClientId: GOOGLE_CONFIG.iosClientId,
     androidClientId: GOOGLE_CONFIG.androidClientId,
     scopes: [...GOOGLE_CONFIG.scopes, 'profile', 'email'],
   });

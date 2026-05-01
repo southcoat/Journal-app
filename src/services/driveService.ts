@@ -5,13 +5,9 @@ const FOLDER_ID_KEY = '@drive_journal_folder_id';
 const DRIVE_FILES_URL = 'https://www.googleapis.com/drive/v3/files';
 const DRIVE_UPLOAD_URL = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
 
-// Google OAuth config — user must create credentials at console.cloud.google.com
-// Enable the Google Drive API and create OAuth 2.0 credentials (Web application type)
 export const GOOGLE_CONFIG = {
-  // Replace with your own Google Cloud OAuth 2.0 client IDs:
-  webClientId: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com',
-  iosClientId: 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com',
-  androidClientId: 'YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com',
+  webClientId: '351964312365-pcrisgcctjjp3t3nuh92bmdrddiil5k7.apps.googleusercontent.com',
+  androidClientId: '351964312365-e6fcd7ms2kbcme7nla8jjp2jqhfms9ie.apps.googleusercontent.com',
   scopes: ['https://www.googleapis.com/auth/drive.file'],
 };
 
@@ -147,7 +143,7 @@ export async function refreshAccessToken(
     body: new URLSearchParams({
       grant_type: 'refresh_token',
       refresh_token: refreshToken,
-      client_id: GOOGLE_CONFIG.webClientId,
+      client_id: GOOGLE_CONFIG.androidClientId,
     }).toString(),
   });
 
