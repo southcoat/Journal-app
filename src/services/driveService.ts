@@ -8,6 +8,7 @@ const DRIVE_UPLOAD_URL = 'https://www.googleapis.com/upload/drive/v3/files?uploa
 export const GOOGLE_CONFIG = {
   webClientId: '351964312365-pcrisgcctjjp3t3nuh92bmdrddiil5k7.apps.googleusercontent.com',
   androidClientId: '351964312365-e6fcd7ms2kbcme7nla8jjp2jqhfms9ie.apps.googleusercontent.com',
+  redirectUri: 'com.googleusercontent.apps.351964312365-e6fcd7ms2kbcme7nla8jjp2jqhfms9ie:/oauthredirect',
   scopes: ['https://www.googleapis.com/auth/drive.file'],
 };
 

@@ -43,7 +43,8 @@ export default function RecordScreen() {
     startedRef.current = true;
 
     recorder.refreshInputs().then(() => recorder.startRecording()).catch(err => {
-      Alert.alert('Could not start recording', err.message, [
+      const msg = err instanceof Error ? err.message : String(err ?? 'Unknown error');
+      Alert.alert('Could not start recording', msg, [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     });
