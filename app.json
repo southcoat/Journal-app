@@ -28,7 +28,18 @@
         "backgroundColor": "#0D0D14"
       },
       "package": "com.southcoat.journalapp",
-      "permissions": ["RECORD_AUDIO", "INTERNET", "FOREGROUND_SERVICE"]
+      "permissions": ["RECORD_AUDIO", "INTERNET", "FOREGROUND_SERVICE"],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "com.googleusercontent.apps.351964312365-e6fcd7ms2kbcme7nla8jjp2jqhfms9ie"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -38,12 +49,6 @@
         "expo-av",
         {
           "microphonePermission": "Allow Journal to access your microphone to record journal entries."
-        }
-      ],
-      [
-        "expo-auth-session",
-        {
-          "schemes": ["com.googleusercontent.apps.351964312365-e6fcd7ms2kbcme7nla8jjp2jqhfms9ie"]
         }
       ]
     ]
