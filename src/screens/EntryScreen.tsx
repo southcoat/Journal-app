@@ -17,6 +17,7 @@ import { Audio } from 'expo-av';
 import * as Sharing from 'expo-sharing';
 import { useApp } from '../contexts/AppContext';
 import { uploadEntryToDrive, refreshAccessToken } from '../services/driveService';
+import { transcribeAudio } from '../services/transcriptionService';
 import { formatDate, formatDuration, formatTime } from '../services/storageService';
 import { RootStackParamList } from '../types';
 import { colors, radius, spacing, typography } from '../theme';
@@ -38,6 +39,7 @@ export default function EntryScreen() {
   const [draftTranscript, setDraftTranscript] = useState('');
   const [editingTitle, setEditingTitle] = useState(false);
   const [draftTitle, setDraftTitle] = useState('');
+  const [isRetranscribing, setIsRetranscribing] = useState(false);
   const soundRef = useRef<Audio.Sound | null>(null);
 
   useEffect(() => {
@@ -166,6 +168,21 @@ export default function EntryScreen() {
     setEditingTitle(false);
   }, [entry, draftTitle, updateEntry]);
 
+  const handleRetranscribe = useCallback(async () => {
+    if (!entry || !settings.geminiApiKey) return;
+    setIsRetranscribing(true);
+    await updateEntry(entry.id, { isTranscribing: true });
+    try {
+      const transcript = await transcribeAudio(entry.audioUri, settings.geminiApiKey);
+      await updateEntry(entry.id, { transcript, isTranscribing: false });
+    } catch {
+      await updateEntry(entry.id, { isTranscribing: false });
+      Alert.alert('Transcription failed', 'Could not transcribe this recording. Check your API key in Settings.');
+    } finally {
+      setIsRetranscribing(false);
+    }
+  }, [entry, settings.geminiApiKey, updateEntry]);
+
   if (!entry) {
     return (
       <SafeAreaView style={styles.container}>
@@ -283,18 +300,20 @@ export default function EntryScreen() {
         <View style={styles.transcriptSection}>
           <View style={styles.transcriptHeader}>
             <Text style={styles.sectionTitle}>Transcript</Text>
-            {!entry.isTranscribing && (
+            {!entry.isTranscribing && !isRetranscribing && entry.transcript ? (
               <TouchableOpacity
                 onPress={() => editingTranscript ? handleSaveTranscript() : setEditingTranscript(true)}
               >
-                <Text style={styles.editBtn}>
-                  {editingTranscript ? 'Save' : 'Edit'}
-                </Text>
+                <Text style={styles.editBtn}>{editingTranscript ? 'Save' : 'Edit'}</Text>
               </TouchableOpacity>
-            )}
+            ) : !entry.isTranscribing && !isRetranscribing && !entry.transcript && settings.geminiApiKey ? (
+              <TouchableOpacity onPress={handleRetranscribe}>
+                <Text style={styles.editBtn}>Transcribe</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
 
-          {entry.isTranscribing ? (
+          {entry.isTranscribing || isRetranscribing ? (
             <View style={styles.transcribingRow}>
               <ActivityIndicator size="small" color={colors.paused} />
               <Text style={styles.transcribingLabel}>Transcribing audio…</Text>
@@ -312,7 +331,11 @@ export default function EntryScreen() {
             />
           ) : (
             <Text style={[styles.transcriptText, !entry.transcript && styles.transcriptEmpty]}>
-              {entry.transcript || 'No transcript available. Add a Google AI Studio API key in Settings to enable transcription.'}
+              {entry.transcript || (
+                settings.geminiApiKey
+                  ? 'No transcript for this entry. Tap Transcribe to generate one.'
+                  : 'No transcript available. Add a Google AI Studio API key in Settings to enable transcription.'
+              )}
             </Text>
           )}
         </View>
