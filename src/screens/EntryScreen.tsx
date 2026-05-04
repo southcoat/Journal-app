@@ -36,10 +36,15 @@ export default function EntryScreen() {
   const [isUploading, setIsUploading] = useState(false);
   const [editingTranscript, setEditingTranscript] = useState(false);
   const [draftTranscript, setDraftTranscript] = useState('');
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [draftTitle, setDraftTitle] = useState('');
   const soundRef = useRef<Audio.Sound | null>(null);
 
   useEffect(() => {
-    if (entry) setDraftTranscript(entry.transcript);
+    if (entry) {
+      setDraftTranscript(entry.transcript);
+      setDraftTitle(entry.title);
+    }
   }, [entry?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup sound on unmount
@@ -154,6 +159,13 @@ export default function EntryScreen() {
     setEditingTranscript(false);
   }, [entry, draftTranscript, updateEntry]);
 
+  const handleSaveTitle = useCallback(async () => {
+    if (!entry) return;
+    const trimmed = draftTitle.trim();
+    if (trimmed) await updateEntry(entry.id, { title: trimmed });
+    setEditingTitle(false);
+  }, [entry, draftTitle, updateEntry]);
+
   if (!entry) {
     return (
       <SafeAreaView style={styles.container}>
@@ -189,6 +201,31 @@ export default function EntryScreen() {
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+        {/* Title */}
+        <View style={styles.titleRow}>
+          {editingTitle ? (
+            <>
+              <TextInput
+                style={styles.titleInput}
+                value={draftTitle}
+                onChangeText={setDraftTitle}
+                autoFocus
+                returnKeyType="done"
+                onSubmitEditing={handleSaveTitle}
+                placeholderTextColor={colors.textMuted}
+              />
+              <TouchableOpacity onPress={handleSaveTitle} style={styles.titleSaveBtn}>
+                <Text style={styles.titleSaveText}>Save</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <TouchableOpacity style={styles.titlePressable} onPress={() => setEditingTitle(true)} activeOpacity={0.7}>
+              <Text style={styles.titleText} numberOfLines={2}>{entry.title}</Text>
+              <Ionicons name="pencil-outline" size={16} color={colors.textMuted} style={styles.titleEditIcon} />
+            </TouchableOpacity>
+          )}
+        </View>
+
         {/* Audio Player */}
         <View style={styles.playerCard}>
           <View style={styles.playerTop}>
@@ -329,6 +366,48 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: spacing.md,
     paddingBottom: spacing.xxl,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    minHeight: 40,
+  },
+  titlePressable: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  titleText: {
+    ...typography.h3,
+    flex: 1,
+  },
+  titleEditIcon: {
+    marginLeft: spacing.xs,
+  },
+  titleInput: {
+    flex: 1,
+    ...typography.h3,
+    color: colors.text,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  titleSaveBtn: {
+    marginLeft: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+  },
+  titleSaveText: {
+    ...typography.caption,
+    fontWeight: '600',
+    color: colors.white,
   },
   playerCard: {
     backgroundColor: colors.surface,
