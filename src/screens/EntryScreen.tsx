@@ -175,9 +175,10 @@ export default function EntryScreen() {
     try {
       const transcript = await transcribeAudio(entry.audioUri, settings.geminiApiKey);
       await updateEntry(entry.id, { transcript, isTranscribing: false });
-    } catch {
+    } catch (err) {
       await updateEntry(entry.id, { isTranscribing: false });
-      Alert.alert('Transcription failed', 'Could not transcribe this recording. Check your API key in Settings.');
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      Alert.alert('Transcription failed', msg);
     } finally {
       setIsRetranscribing(false);
     }

@@ -11,7 +11,7 @@ export async function transcribeAudio(
   });
 
   const ext = audioUri.split('.').pop()?.toLowerCase();
-  const mimeType = ext === 'wav' ? 'audio/wav' : 'audio/m4a';
+  const mimeType = ext === 'wav' ? 'audio/wav' : 'audio/mp4';
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
