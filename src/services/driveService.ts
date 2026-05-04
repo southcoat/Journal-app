@@ -7,7 +7,10 @@ const DRIVE_UPLOAD_URL = 'https://www.googleapis.com/upload/drive/v3/files?uploa
 
 export const GOOGLE_CONFIG = {
   webClientId: '351964312365-pcrisgcctjjp3t3nuh92bmdrddiil5k7.apps.googleusercontent.com',
-  redirectUri: 'journalapp://oauthredirect',
+  androidClientId: '351964312365-e6fcd7ms2kbcme7nla8jjp2jqhfms9ie.apps.googleusercontent.com',
+  // AppAuth standard redirect URI for Android OAuth clients — automatically accepted by Google,
+  // no Cloud Console redirect URI configuration needed.
+  redirectUri: 'com.googleusercontent.apps.351964312365-e6fcd7ms2kbcme7nla8jjp2jqhfms9ie:/oauth2redirect',
   scopes: ['https://www.googleapis.com/auth/drive.file'],
 };
 
@@ -143,7 +146,7 @@ export async function refreshAccessToken(
     body: new URLSearchParams({
       grant_type: 'refresh_token',
       refresh_token: refreshToken,
-      client_id: GOOGLE_CONFIG.webClientId,
+      client_id: GOOGLE_CONFIG.androidClientId,
     }).toString(),
   });
 
