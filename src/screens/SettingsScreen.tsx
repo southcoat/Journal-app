@@ -36,7 +36,6 @@ export default function SettingsScreen() {
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: GOOGLE_CONFIG.webClientId,
-    androidClientId: GOOGLE_CONFIG.androidClientId,
     redirectUri: GOOGLE_CONFIG.redirectUri,
     scopes: [...GOOGLE_CONFIG.scopes, 'profile', 'email'],
   });
@@ -238,7 +237,7 @@ export default function SettingsScreen() {
         {/* ── About ─────────────────────────────────────────────── */}
         <Text style={styles.sectionHeader}>About</Text>
         <View style={styles.card}>
-          {[['Version', '1.0.0'], ['Platform', 'Expo SDK 51']].map(([k, v], i, arr) => (
+          {[['Version', '1.0.0'], ['Platform', 'Expo SDK 52']].map(([k, v], i, arr) => (
             <View key={k} style={[styles.aboutRow, i === arr.length - 1 && { borderBottomWidth: 0 }]}>
               <Text style={styles.aboutLabel}>{k}</Text>
               <Text style={styles.aboutValue}>{v}</Text>

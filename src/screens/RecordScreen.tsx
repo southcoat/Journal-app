@@ -86,7 +86,7 @@ export default function RecordScreen() {
       };
 
       await addEntry(entry);
-      navigation.replace('Entry', { entryId });
+      navigation.replace('Entry', { entryId, newEntry: entry });
 
       if (settings.geminiApiKey) {
         try {

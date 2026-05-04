@@ -29,7 +29,7 @@ export default function EntryScreen() {
   const route = useRoute<Route>();
   const { entries, updateEntry, deleteEntry, settings } = useApp();
 
-  const entry = entries.find(e => e.id === route.params.entryId);
+  const entry = entries.find(e => e.id === route.params.entryId) ?? route.params.newEntry;
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackMs, setPlaybackMs] = useState(0);

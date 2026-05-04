@@ -32,11 +32,7 @@
       "intentFilters": [
         {
           "action": "VIEW",
-          "data": [
-            {
-              "scheme": "com.googleusercontent.apps.351964312365-e6fcd7ms2kbcme7nla8jjp2jqhfms9ie"
-            }
-          ],
+          "data": [{ "scheme": "journalapp" }],
           "category": ["BROWSABLE", "DEFAULT"]
         }
       ]

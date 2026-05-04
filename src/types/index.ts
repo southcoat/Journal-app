@@ -35,6 +35,6 @@ export type RecordingStatus = 'idle' | 'recording' | 'paused' | 'processing';
 export type RootStackParamList = {
   Home: undefined;
   Record: undefined;
-  Entry: { entryId: string };
+  Entry: { entryId: string; newEntry?: JournalEntry };
   Settings: undefined;
 };
