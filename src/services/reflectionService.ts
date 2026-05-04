@@ -4,6 +4,8 @@ const FALLBACK_PROMPTS = [
   "What's been weighing on your mind most this week?",
   "Is there something you've been avoiding that deserves attention?",
   "What's one thing you're proud of since your last entry?",
+  "What would you do differently if you could replay the last few days?",
+  "Where did your energy go today — was it where you wanted it?",
 ];
 
 export async function generateReflectionPrompts(
@@ -27,7 +29,7 @@ export async function generateReflectionPrompts(
         body: JSON.stringify({
           systemInstruction: {
             parts: [{
-              text: "You are a thoughtful journaling coach. Based on the user's recent journal entries, generate exactly 2-3 short, specific reflection questions to guide their next recording. Make them feel personal and connected to their actual content — not generic self-help clichés. Focus on growth, unresolved threads, or meaningful patterns you notice. Return ONLY a valid JSON array of strings, nothing else. Example: [\"How did the team meeting go after you restructured it?\",\"You mentioned feeling stuck — what's shifted since then?\"]",
+              text: "You are a thoughtful journaling coach. Based on the user's recent journal entries, generate 2 to 4 short, specific reflection questions to guide their next recording. Make them feel personal and connected to their actual content — not generic self-help clichés. Focus on growth, unresolved threads, or meaningful patterns you notice. Return ONLY a valid JSON array of strings, nothing else. Example: [\"How did the team meeting go after you restructured it?\",\"You mentioned feeling stuck — what's shifted since then?\"]",
             }],
           },
           contents: [{
@@ -47,7 +49,7 @@ export async function generateReflectionPrompts(
     const content = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
     const parsed: unknown = JSON.parse(content);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      return (parsed as string[]).slice(0, 3);
+      return (parsed as string[]).slice(0, 4);
     }
     return pickFallbacks();
   } catch {
@@ -56,5 +58,6 @@ export async function generateReflectionPrompts(
 }
 
 function pickFallbacks(): string[] {
-  return [...FALLBACK_PROMPTS].sort(() => Math.random() - 0.5).slice(0, 2);
+  const count = 2 + Math.floor(Math.random() * 3); // 2, 3, or 4
+  return [...FALLBACK_PROMPTS].sort(() => Math.random() - 0.5).slice(0, count);
 }

@@ -28,7 +28,7 @@
         "backgroundColor": "#0D0D14"
       },
       "package": "com.southcoat.journalapp",
-      "permissions": ["RECORD_AUDIO", "INTERNET", "FOREGROUND_SERVICE"],
+      "permissions": ["RECORD_AUDIO", "INTERNET", "FOREGROUND_SERVICE", "FOREGROUND_SERVICE_MICROPHONE"],
       "intentFilters": [
         {
           "action": "VIEW",

@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { DarkTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 import HomeScreen from '../screens/HomeScreen';
@@ -10,9 +10,22 @@ import { colors } from '../theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+const NavTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    background: colors.background,
+    card: colors.surface,
+    text: colors.text,
+    border: colors.surfaceBorder,
+    primary: colors.primary,
+    notification: colors.recording,
+  },
+};
+
 export default function AppNavigator() {
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={NavTheme}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
