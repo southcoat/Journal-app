@@ -4,10 +4,12 @@ import {
   Alert,
   Platform,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -31,13 +33,15 @@ export default function RecordScreen() {
   const navigation = useNavigation<Nav>();
   const { addEntry, updateEntry, settings, entries } = useApp();
   const recorder = useRecorder();
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
+
   const [showMicSelector, setShowMicSelector] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const [reflectionPrompts, setReflectionPrompts] = useState<string[]>([]);
   const [loadingPrompts, setLoadingPrompts] = useState(true);
   const startedRef = useRef(false);
 
-  // Load reflection prompts and auto-start recording concurrently
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
@@ -133,9 +137,29 @@ export default function RecordScreen() {
     recorder.status === 'recording' ? colors.recording :
     recorder.status === 'paused'    ? colors.paused    : colors.textSecondary;
 
+  const Controls = isProcessing ? (
+    <View style={styles.processingArea}>
+      <ActivityIndicator color={colors.primary} size="large" />
+      <Text style={styles.processingLabel}>
+        {recorder.status === 'processing' ? 'Saving audio…' : 'Transcribing…'}
+      </Text>
+    </View>
+  ) : (
+    <>
+      <RecordButton status={recorder.status} onPress={handleRecordButtonPress} size={88} />
+      <TouchableOpacity
+        style={styles.stopBtn}
+        onPress={handleStop}
+        disabled={recorder.status === 'idle'}
+      >
+        <View style={styles.stopIcon} />
+      </TouchableOpacity>
+    </>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* Top bar */}
+      {/* Top bar — same in portrait and landscape */}
       <View style={styles.topBar}>
         <TouchableOpacity style={styles.iconBtn} onPress={handleCancel} disabled={isProcessing}>
           <Ionicons name="close" size={24} color={colors.textSecondary} />
@@ -151,43 +175,50 @@ export default function RecordScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Reflection prompts */}
-      {showPrompts && (
-        <ReflectionPrompts prompts={reflectionPrompts} isLoading={loadingPrompts} />
-      )}
-
-      {/* Waveform + duration */}
-      <View style={styles.center}>
-        <Waveform
-          audioLevel={recorder.audioLevel}
-          isActive={recorder.status === 'recording'}
-          color={recorder.status === 'paused' ? colors.paused : colors.primary}
-        />
-        <Text style={styles.duration}>{formatDuration(recorder.durationMs)}</Text>
-      </View>
-
-      {/* Controls */}
-      <View style={[styles.controls, Platform.OS === 'web' && styles.controlsWeb]}>
-        {isProcessing ? (
-          <View style={styles.processingArea}>
-            <ActivityIndicator color={colors.primary} size="large" />
-            <Text style={styles.processingLabel}>
-              {recorder.status === 'processing' ? 'Saving audio…' : 'Transcribing…'}
+      {isLandscape ? (
+        // ── Landscape: side-by-side layout ──────────────────────────
+        <View style={styles.bodyLandscape}>
+          <ScrollView
+            style={styles.leftPanelLandscape}
+            contentContainerStyle={styles.leftPanelContentLandscape}
+            showsVerticalScrollIndicator={false}
+          >
+            {showPrompts && (
+              <ReflectionPrompts prompts={reflectionPrompts} isLoading={loadingPrompts} />
+            )}
+            <Waveform
+              audioLevel={recorder.audioLevel}
+              isActive={recorder.status === 'recording'}
+              color={recorder.status === 'paused' ? colors.paused : colors.primary}
+            />
+            <Text style={[styles.duration, styles.durationLandscape]}>
+              {formatDuration(recorder.durationMs)}
             </Text>
+          </ScrollView>
+
+          <View style={styles.rightPanelLandscape}>
+            {Controls}
           </View>
-        ) : (
-          <>
-            <RecordButton status={recorder.status} onPress={handleRecordButtonPress} size={88} />
-            <TouchableOpacity
-              style={styles.stopBtn}
-              onPress={handleStop}
-              disabled={recorder.status === 'idle'}
-            >
-              <View style={styles.stopIcon} />
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
+        </View>
+      ) : (
+        // ── Portrait: vertical stack ─────────────────────────────────
+        <>
+          {showPrompts && (
+            <ReflectionPrompts prompts={reflectionPrompts} isLoading={loadingPrompts} />
+          )}
+          <View style={styles.center}>
+            <Waveform
+              audioLevel={recorder.audioLevel}
+              isActive={recorder.status === 'recording'}
+              color={recorder.status === 'paused' ? colors.paused : colors.primary}
+            />
+            <Text style={styles.duration}>{formatDuration(recorder.durationMs)}</Text>
+          </View>
+          <View style={[styles.controls, Platform.OS === 'web' && styles.controlsWeb]}>
+            {Controls}
+          </View>
+        </>
+      )}
 
       <MicSelector
         visible={showMicSelector}
@@ -256,6 +287,8 @@ const styles = StyleSheet.create({
     ...typography.caption,
     fontWeight: '600',
   },
+
+  // Portrait layout
   center: {
     flex: 1,
     alignItems: 'center',
@@ -275,14 +308,41 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
     gap: spacing.xl,
   },
-  // Extra bottom padding on web to clear the browser taskbar
   controlsWeb: {
     paddingBottom: 80,
   },
+
+  // Landscape layout
+  bodyLandscape: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  leftPanelLandscape: {
+    flex: 1,
+  },
+  leftPanelContentLandscape: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingBottom: spacing.md,
+  },
+  durationLandscape: {
+    fontSize: 32,
+    marginTop: spacing.sm,
+    textAlign: 'center',
+  },
+  rightPanelLandscape: {
+    width: 140,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xl,
+    paddingRight: spacing.lg,
+    paddingLeft: spacing.sm,
+  },
+
+  // Shared control elements
   processingArea: {
     alignItems: 'center',
     gap: spacing.md,
-    paddingBottom: spacing.lg,
   },
   processingLabel: {
     ...typography.body,
