@@ -32,6 +32,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [isLoading, setIsLoading] = useState(true);
   const mounted = useRef(true);
+  const entriesRef = useRef<JournalEntry[]>([]);
+
+  useEffect(() => {
+    entriesRef.current = entries;
+  }, [entries]);
 
   useEffect(() => {
     return () => { mounted.current = false; };
@@ -56,23 +61,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addEntry = useCallback(async (entry: JournalEntry) => {
-    const updated = [entry, ...entries];
+    const updated = [entry, ...entriesRef.current];
     setEntries(updated);
     await storageService.saveEntries(updated);
-  }, [entries]);
+  }, []);
 
   const updateEntry = useCallback(async (id: string, updates: Partial<JournalEntry>) => {
-    const updated = entries.map(e => e.id === id ? { ...e, ...updates } : e);
+    const updated = entriesRef.current.map(e => e.id === id ? { ...e, ...updates } : e);
     setEntries(updated);
     await storageService.saveEntries(updated);
-  }, [entries]);
+  }, []);
 
   const deleteEntry = useCallback(async (id: string) => {
-    const updated = entries.filter(e => e.id !== id);
+    const audioUri = entriesRef.current.find(e => e.id === id)?.audioUri ?? '';
+    const updated = entriesRef.current.filter(e => e.id !== id);
     setEntries(updated);
     await storageService.saveEntries(updated);
-    await storageService.deleteAudioFile(entries.find(e => e.id === id)?.audioUri ?? '');
-  }, [entries]);
+    await storageService.deleteAudioFile(audioUri);
+  }, []);
 
   const updateSettings = useCallback(async (updates: Partial<AppSettings>) => {
     const updated = { ...settings, ...updates };
