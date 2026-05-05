@@ -159,7 +159,12 @@ export function useRecorder(): UseRecorderReturn {
     await refreshInputs();
 
     const recording = new Audio.Recording();
-    await recording.prepareToRecordAsync(buildRecordingOptions(format));
+    try {
+      await recording.prepareToRecordAsync(buildRecordingOptions(format));
+    } catch {
+      // Fall back to expo-av preset which works on virtually all devices
+      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+    }
 
     recording.setOnRecordingStatusUpdate((s) => {
       if (s.isRecording) {

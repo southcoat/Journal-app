@@ -46,7 +46,15 @@ export default function RecordScreen() {
     if (startedRef.current) return;
     startedRef.current = true;
 
-    recorder.refreshInputs().then(() => recorder.startRecording()).catch(err => {
+    const startWithTimeout = async () => {
+      await recorder.refreshInputs();
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Microphone did not respond. Close other apps using the mic and try again.')), 12000)
+      );
+      await Promise.race([recorder.startRecording(settings.audioFormat), timeout]);
+    };
+
+    startWithTimeout().catch(err => {
       const msg = err instanceof Error ? err.message : String(err ?? 'Unknown error');
       Alert.alert('Could not start recording', msg, [
         { text: 'OK', onPress: () => navigation.goBack() },
