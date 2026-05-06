@@ -1,8 +1,10 @@
 import * as FileSystem from 'expo-file-system';
 
-async function callGemini(base64: string, mimeType: string, apiKey: string): Promise<string> {
+const MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+
+async function callGemini(base64: string, mimeType: string, apiKey: string, model: string): Promise<string> {
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -18,11 +20,13 @@ async function callGemini(base64: string, mimeType: string, apiKey: string): Pro
   );
 
   if (!response.ok) {
-    const err = await response.json().catch(() => ({})) as { error?: { message?: string; code?: number } };
+    const err = await response.json().catch(() => ({})) as { error?: { message?: string } };
     const msg = err?.error?.message ?? `Transcription failed (${response.status})`;
     const isRateLimit = response.status === 429 || response.status === 503;
-    const error = new Error(msg) as Error & { isRateLimit?: boolean };
-    error.isRateLimit = isRateLimit;
+    // Parse "Please retry in X.XXs." from the error message
+    const retryMatch = msg.match(/retry in ([\d.]+)s/i);
+    const retryAfterMs = retryMatch ? Math.ceil(parseFloat(retryMatch[1])) * 1000 + 2000 : 65000;
+    const error = Object.assign(new Error(msg), { isRateLimit, retryAfterMs });
     throw error;
   }
 
@@ -45,14 +49,19 @@ export async function transcribeAudio(
   const ext = audioUri.split('.').pop()?.toLowerCase();
   const mimeType = ext === 'wav' ? 'audio/wav' : 'audio/mp4';
 
-  try {
-    return await callGemini(base64, mimeType, apiKey);
-  } catch (err) {
-    // Retry once after 15 seconds on rate-limit errors
-    if ((err as { isRateLimit?: boolean }).isRateLimit) {
-      await new Promise(resolve => setTimeout(resolve, 15000));
-      return await callGemini(base64, mimeType, apiKey);
+  for (const model of MODELS) {
+    try {
+      return await callGemini(base64, mimeType, apiKey, model);
+    } catch (err) {
+      const e = err as Error & { isRateLimit?: boolean; retryAfterMs?: number };
+      if (e.isRateLimit) {
+        // Wait the exact time the API specified, then try next model
+        await new Promise(resolve => setTimeout(resolve, e.retryAfterMs ?? 65000));
+        continue;
+      }
+      throw err;
     }
-    throw err;
   }
+
+  throw new Error('Transcription quota exceeded on all models. Please wait a minute and try again.');
 }
