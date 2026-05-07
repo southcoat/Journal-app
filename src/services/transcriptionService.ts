@@ -1,6 +1,6 @@
 import * as FileSystem from 'expo-file-system';
 
-const MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+const MODELS = ['gemini-2.0-flash', 'gemini-2.0-flash-lite'];
 
 async function callGemini(base64: string, mimeType: string, apiKey: string, model: string): Promise<string> {
   const response = await fetch(
